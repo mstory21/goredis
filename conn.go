@@ -28,6 +28,13 @@ type Conn struct {
 	closed int32
 }
 
+type Options struct {
+	addr      string
+	readSize  int
+	writeSize int
+	timeout   *time.Duration
+}
+
 func Connect(addr string) (*Conn, error) {
 	return ConnectWithSize(addr, 1024, 1024)
 }
@@ -36,6 +43,35 @@ func ConnectWithSize(addr string, readSize int, writeSize int) (*Conn, error) {
 	conn, err := net.Dial(getProto(addr), addr)
 	if err != nil {
 		return nil, err
+	}
+
+	return NewConnWithSize(conn, readSize, writeSize)
+}
+
+func ConnectWithOptions(options Options) (*Conn, error) {
+	var conn net.Conn
+	var err error
+	if options.timeout != nil {
+		conn, err = net.DialTimeout(getProto(options.addr), options.addr, *options.timeout)
+	} else {
+		conn, err = net.Dial(getProto(options.addr), options.addr)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var readSize int
+	if options.readSize > 0 {
+		readSize = options.readSize
+	} else {
+		readSize = 1024
+	}
+
+	var writeSize int
+	if options.writeSize > 0 {
+		writeSize = options.writeSize
+	} else {
+		writeSize = 1024
 	}
 
 	return NewConnWithSize(conn, readSize, writeSize)
